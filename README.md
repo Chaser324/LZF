@@ -14,9 +14,9 @@ public static int Compress(byte[] inputBytes, ref byte[] outputBuffer)
 public static int Deompress(byte[] inputBytes, ref byte[] outputBuffer)
 ```
 
-`inputBytes`: Input bytes to compress/decompress.
-`outputBuffer`: A reference to the buffer where the output will be produced. This will be allocated/resized as necessary, so it's acceptable to initially pass in a null reference.
-`Returns`: The size of the output in bytes. This is **VERY IMPORTANT** to note because this will be smaller than outputBuffer.Length in most cases. A small inconvenience but necessary if you want to avoid unnecessary memory allocations.
+* `inputBytes`: Input bytes to compress/decompress.
+* `outputBuffer`: A reference to the buffer where the output will be produced. This will be allocated/resized as necessary, so it's acceptable to initially pass in a null reference.
+* `Returns`: The size of the output in bytes. This is **VERY IMPORTANT** to note because this will be smaller than outputBuffer.Length in most cases. A small inconvenience but necessary if you want to avoid unnecessary memory allocations.
 
 Here's a quick example of using this library to compress some generic input data and write it to a file:
 
