@@ -9,7 +9,7 @@ This implementation includes several compress/decompress methods which can be ca
 
 If you're looking to keep memory allocations as limited as possible, you'll want to use these methods:
 
-```C#
+```csharp
 public static int Compress(byte[] inputBytes, ref byte[] outputBuffer)
 public static int Deompress(byte[] inputBytes, ref byte[] outputBuffer)
 ```
@@ -20,7 +20,7 @@ public static int Deompress(byte[] inputBytes, ref byte[] outputBuffer)
 
 Here's a quick example of using this library to compress some generic input data and write it to a file:
 
-```C#
+```csharp
 // Declare input/output buffers.
 byte[] inputBuffer = null;
 byte[] outputBuffer = null;
