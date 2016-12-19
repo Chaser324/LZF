@@ -101,13 +101,21 @@ public class CLZF2
     /// </summary>
     /// <param name="inputBytes">Bytes to compress.</param>
     /// <param name="outputBuffer">Output/work buffer. Upon completion, will contain the output.</param>
-    /// <param name="inputLength">Length of data in inputBytes. Set to -1 to default to inputBytes.Length.</param>
     /// <returns>Length of output.</returns>
-    public static int Compress(byte[] inputBytes, ref byte[] outputBuffer, int inputLength = -1)
+    public static int Compress(byte[] inputBytes, ref byte[] outputBuffer)
     {
-        if (inputLength == -1)
-            inputLength = inputBytes.Length;
+        return Compress(inputBytes, ref outputBuffer, inputBytes.Length);
+    }
 
+    /// <summary>
+    /// Compress input bytes.
+    /// </summary>
+    /// <param name="inputBytes">Bytes to compress.</param>
+    /// <param name="outputBuffer">Output/work buffer. Upon completion, will contain the output.</param>
+    /// <param name="inputLength">Length of data in inputBytes.</param>
+    /// <returns>Length of output.</returns>
+    public static int Compress(byte[] inputBytes, ref byte[] outputBuffer, int inputLength)
+    {
         // Estimate necessary output buffer size.
         int outputByteCountGuess = inputBytes.Length * BUFFER_SIZE_ESTIMATE;
         if (outputBuffer == null || outputBuffer.Length < outputByteCountGuess)
@@ -157,13 +165,21 @@ public class CLZF2
     /// </summary>
     /// <param name="inputBytes">Bytes to decompress.</param>
     /// <param name="outputBuffer">Output/work buffer. Upon completion, will contain the output.</param>
-    /// <param name="inputLength">Length of data in inputBytes. Set to -1 to default to inputBytes.Length.</param>
     /// <returns>Length of output.</returns>
-    public static int Decompress(byte[] inputBytes, ref byte[] outputBuffer, int inputLength = -1)
+    public static int Decompress(byte[] inputBytes, ref byte[] outputBuffer)
     {
-        if (inputLength == -1)
-            inputLength = inputBytes.Length;
+        return Decompress(inputBytes, ref outputBuffer, inputBytes.Length);
+    }
 
+    /// <summary>
+    /// Decompress input bytes.
+    /// </summary>
+    /// <param name="inputBytes">Bytes to decompress.</param>
+    /// <param name="outputBuffer">Output/work buffer. Upon completion, will contain the output.</param>
+    /// <param name="inputLength">Length of data in inputBytes.</param>
+    /// <returns>Length of output.</returns>
+    public static int Decompress(byte[] inputBytes, ref byte[] outputBuffer, int inputLength)
+    {
         // Estimate necessary output buffer size.
         int outputByteCountGuess = inputBytes.Length * BUFFER_SIZE_ESTIMATE;
         if (outputBuffer == null || outputBuffer.Length < outputByteCountGuess)
