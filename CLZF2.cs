@@ -43,7 +43,7 @@ using System;
 /// </summary>
 public class CLZF2
 {
-    #region Constants
+    #region Tunable Constants
 
     /// <summary>
     /// Multiple of input size used to estimate work/output buffer size.
@@ -51,8 +51,21 @@ public class CLZF2
     /// </summary>
     private const int BUFFER_SIZE_ESTIMATE = 2;
 
+    /// <summary>
+    /// Size of hashtable is 2^HLOG bytes. 
+    /// Decompression is independent of the hash table size.
+    /// The difference between 15 and 14 is very small
+    /// for small blocks (and 14 is usually a bit faster).
+    /// For a low-memory/faster configuration, use HLOG == 13;
+    /// For best compression, use 15 or 16 (or more, up to 22).
+    /// </summary>
     private const uint HLOG = 14;
-    private const uint HSIZE = (1 << 14);
+
+    #endregion
+
+    # region Other Constants (Do Not Modify)
+
+    private const uint HSIZE = (1 << (int)HLOG);
     private const uint MAX_LIT = (1 << 5);
     private const uint MAX_OFF = (1 << 13);
     private const uint MAX_REF = ((1 << 8) + (1 << 3));
