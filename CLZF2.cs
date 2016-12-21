@@ -75,9 +75,15 @@ public class CLZF2
     #region Fields
 
     /// <summary>
-    /// Hashtable, that can be allocated only once for all instances.
+    /// Hashtable, that can be allocated only once.
     /// </summary>
     private static readonly long[] HashTable = new long[HSIZE];
+
+    /// <summary>
+    /// Lock object for access to hashtable so that we can keep things thread safe.
+    /// Still up to the caller to make sure any shared outputBuffer use is thread safe.
+    /// </summary>
+    private static readonly object locker = new object();
 
     #endregion
 
@@ -226,8 +232,6 @@ public class CLZF2
     {
         int outputLength = output.Length;
 
-        Array.Clear(HashTable, 0, (int)HSIZE);
-
         long hslot;
         uint iidx = 0;
         uint oidx = 0;
@@ -237,91 +241,97 @@ public class CLZF2
         long off;
         int lit = 0;
 
-        for (; ; )
+        // Lock so we have exclusive access to hashtable.
+        lock (locker)
         {
-            if (iidx < inputLength - 2)
+            Array.Clear(HashTable, 0, (int)HSIZE);
+
+            for (; ; )
             {
-                hval = (hval << 8) | input[iidx + 2];
-                hslot = ((hval ^ (hval << 5)) >> (int)(((3 * 8 - HLOG)) - hval * 5) & (HSIZE - 1));
-                reference = HashTable[hslot];
-                HashTable[hslot] = (long)iidx;
-
-                if ((off = iidx - reference - 1) < MAX_OFF
-                    && iidx + 4 < inputLength
-                    && reference > 0
-                    && input[reference + 0] == input[iidx + 0]
-                    && input[reference + 1] == input[iidx + 1]
-                    && input[reference + 2] == input[iidx + 2]
-                    )
+                if (iidx < inputLength - 2)
                 {
-                    /* match found at *reference++ */
-                    uint len = 2;
-                    uint maxlen = (uint)inputLength - iidx - len;
-                    maxlen = maxlen > MAX_REF ? MAX_REF : maxlen;
+                    hval = (hval << 8) | input[iidx + 2];
+                    hslot = ((hval ^ (hval << 5)) >> (int)(((3 * 8 - HLOG)) - hval * 5) & (HSIZE - 1));
+                    reference = HashTable[hslot];
+                    HashTable[hslot] = (long)iidx;
 
-                    if (oidx + lit + 1 + 3 >= outputLength)
+                    if ((off = iidx - reference - 1) < MAX_OFF
+                        && iidx + 4 < inputLength
+                        && reference > 0
+                        && input[reference + 0] == input[iidx + 0]
+                        && input[reference + 1] == input[iidx + 1]
+                        && input[reference + 2] == input[iidx + 2]
+                        )
+                    {
+                        /* match found at *reference++ */
+                        uint len = 2;
+                        uint maxlen = (uint)inputLength - iidx - len;
+                        maxlen = maxlen > MAX_REF ? MAX_REF : maxlen;
+
+                        if (oidx + lit + 1 + 3 >= outputLength)
+                            return 0;
+
+                        do
+                            len++;
+                        while (len < maxlen && input[reference + len] == input[iidx + len]);
+
+                        if (lit != 0)
+                        {
+                            output[oidx++] = (byte)(lit - 1);
+                            lit = -lit;
+                            do
+                                output[oidx++] = input[iidx + lit];
+                            while ((++lit) != 0);
+                        }
+
+                        len -= 2;
+                        iidx++;
+
+                        if (len < 7)
+                        {
+                            output[oidx++] = (byte)((off >> 8) + (len << 5));
+                        }
+                        else
+                        {
+                            output[oidx++] = (byte)((off >> 8) + (7 << 5));
+                            output[oidx++] = (byte)(len - 7);
+                        }
+
+                        output[oidx++] = (byte)off;
+
+                        iidx += len - 1;
+                        hval = (uint)(((input[iidx]) << 8) | input[iidx + 1]);
+
+                        hval = (hval << 8) | input[iidx + 2];
+                        HashTable[((hval ^ (hval << 5)) >> (int)(((3 * 8 - HLOG)) - hval * 5) & (HSIZE - 1))] = iidx;
+                        iidx++;
+
+                        hval = (hval << 8) | input[iidx + 2];
+                        HashTable[((hval ^ (hval << 5)) >> (int)(((3 * 8 - HLOG)) - hval * 5) & (HSIZE - 1))] = iidx;
+                        iidx++;
+                        continue;
+                    }
+                }
+                else if (iidx == inputLength)
+                    break;
+
+                /* one more literal byte we must copy */
+                lit++;
+                iidx++;
+
+                if (lit == MAX_LIT)
+                {
+                    if (oidx + 1 + MAX_LIT >= outputLength)
                         return 0;
 
+                    output[oidx++] = (byte)(MAX_LIT - 1);
+                    lit = -lit;
                     do
-                        len++;
-                    while (len < maxlen && input[reference + len] == input[iidx + len]);
-
-                    if (lit != 0)
-                    {
-                        output[oidx++] = (byte)(lit - 1);
-                        lit = -lit;
-                        do
-                            output[oidx++] = input[iidx + lit];
-                        while ((++lit) != 0);
-                    }
-
-                    len -= 2;
-                    iidx++;
-
-                    if (len < 7)
-                    {
-                        output[oidx++] = (byte)((off >> 8) + (len << 5));
-                    }
-                    else
-                    {
-                        output[oidx++] = (byte)((off >> 8) + (7 << 5));
-                        output[oidx++] = (byte)(len - 7);
-                    }
-
-                    output[oidx++] = (byte)off;
-
-                    iidx += len - 1;
-                    hval = (uint)(((input[iidx]) << 8) | input[iidx + 1]);
-
-                    hval = (hval << 8) | input[iidx + 2];
-                    HashTable[((hval ^ (hval << 5)) >> (int)(((3 * 8 - HLOG)) - hval * 5) & (HSIZE - 1))] = iidx;
-                    iidx++;
-
-                    hval = (hval << 8) | input[iidx + 2];
-                    HashTable[((hval ^ (hval << 5)) >> (int)(((3 * 8 - HLOG)) - hval * 5) & (HSIZE - 1))] = iidx;
-                    iidx++;
-                    continue;
+                        output[oidx++] = input[iidx + lit];
+                    while ((++lit) != 0);
                 }
-            }
-            else if (iidx == inputLength)
-                break;
-
-            /* one more literal byte we must copy */
-            lit++;
-            iidx++;
-
-            if (lit == MAX_LIT)
-            {
-                if (oidx + 1 + MAX_LIT >= outputLength)
-                    return 0;
-
-                output[oidx++] = (byte)(MAX_LIT - 1);
-                lit = -lit;
-                do
-                    output[oidx++] = input[iidx + lit];
-                while ((++lit) != 0);
-            }
-        }
+            } // for
+        } // lock
 
         if (lit != 0)
         {
